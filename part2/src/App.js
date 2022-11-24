@@ -1,121 +1,123 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import axios from 'axios'
 
-const AddNewMember = ( {newName, newPhoneNumber,
-  handleNameChange, handleAddName, handlePhoneNumberChange} ) => {
-  return (
-    <div>
-      <h2>add a new </h2>
-      <form onSubmit={handleAddName}>
-        <div>
-          <p>name:
-          <input 
-            value={newName}
-            onChange={handleNameChange}
-          /></p>
-          <p>phone number:
-          <input 
-            value={newPhoneNumber}
-            onChange={handlePhoneNumberChange}
-          /></p>
-        </div>
-        <div>
-          <button type="submit">add</button>
-        </div>
-      </form>
-    </div>
-  )
-}
-
-const Numbers = ( {persons, nameFilter} ) => {
-  let filteredPersons
-  if (nameFilter.length === 0) {
-    filteredPersons = persons;
-  } else {
-    filteredPersons = persons.filter(person => {
-      let lowerCaseNameFilter = nameFilter.toLowerCase()
-      let lowerCaseName = person.name.toLowerCase();
-      return lowerCaseName.startsWith(lowerCaseNameFilter);
-    })
+const ShowCountrysInfo = ( {countries} ) => {
+  //Case 1: No Data is Pulled
+  if (!countries || countries.length === 0) {
+    return (
+      <div>
+      </div>
+    )
   }
 
+  //Case 2: Only One Country Matches Filter
+  if (countries.length === 1) {
+    return (
+      <div>
+        <ShowCountryInfo country={countries[0]} />
+      </div>
+    )
+  }
+
+  //Case 3: Multiple Countries Matches Filter
   return (
     <div>
-      <h2>Numbers</h2>
-      {filteredPersons.map((person, idx) => 
-        <Member key={idx} name={person.name} phoneNumber={person.phoneNumber}/>
-      )}
+      {countries.map((country, idx) => {
+        return (
+          <ListCountry key={idx} country={country} />
+        )
+      })}
     </div>
   )
 }
 
-const Member = ( {name, phoneNumber} ) => {
-  return (
-    <p>
-      {name} {phoneNumber}
-    </p>
-  )
-}
-
-const NameFilter = ( {newNameFilter, handleNameFilterChange} ) => {
+//do the part about showing countries info when clicked on "show"
+//in a later part
+const ListCountry = ( {country} ) => {
   return (
     <div>
-      <form>
-        <p>filter shown with
-          <input
-          value={newNameFilter}
-          onChange={handleNameFilterChange}>
-          </input>
+      <form onSubmit={handleShowCountry}>
+        <p>{country.name.common}
+          <button type="submit">show</button>
         </p>
       </form>
     </div>
   )
 }
 
+//don't know how to pass name of country as well
+//need to have event object to prevent default action
+const handleShowCountry = (event) => {
+  console.log("inside handleShowCountry")
+  alert("trying to show countries info but can't")
+  event.preventDefault();
+  //not sure how to do this one below
+  // return (
+  //   <ShowCountryInfo country={country} />
+  // )
+}
+
+const ShowCountryInfo = ( {country} ) => {
+  return (
+    <div>
+      <h2>{country.name.common}</h2>
+
+      <p> capital {country.capital[0]}</p>
+      <p> area {country.area}</p>
+      <h3>languages:</h3>
+      <ul>
+        {Object.values(country.languages).map((language, idx) =>
+          <Language key={idx} lang={language} />
+        )}
+      </ul>
+
+      <img src={country.flags.png} alt={`${country.name.common} flag`} />
+    </div>
+  )
+}
+
+const Language = ( {lang} ) => {
+  return (
+    <li>{lang}</li>
+  )
+}
+
+//filter list of objects if country name starts with filter text
+const filterCountry = () => {
+  return undefined;
+}
+
 const App = () => {
-  const [persons, setPersons] = useState([])
-  const [newName, setNewName] = useState('')
-  const [newPhoneNumber, setNewPhoneNumber] = useState('')
-  const [newNameFilter, setNewNameFilter] = useState('')
+  const [newCountryFilter, setNewCountryFilter] = useState('')
+  const [countriesInfo, setCountryInfo] = useState([]);
 
-  const handleNameChange = (event) => {
-    setNewName(event.target.value)
+  const handleCountryFilterChange = (event) => {
+    setNewCountryFilter(event.target.value)
   }
 
-  const handlePhoneNumberChange = (event) => {
-    setNewPhoneNumber(event.target.value)
-  }
 
-  const handleNameFilterChange = (event) => {
-    setNewNameFilter(event.target.value)
-  }
-
-  const handleAddName = (event) => {
-    event.preventDefault();
-    let isCurntNameExist = persons.some(person => {
-      return person.name === newName
-    })
-
-    if (isCurntNameExist) {
-      alert(`${newName} is already added to phonebook`)
-    } else {
-      setPersons(persons.concat({name: newName, phoneNumber: newPhoneNumber}))
-    }
-  }
+  useEffect(() => {
+    axios
+      .get('https://restcountries.com/v3.1/all')
+      .then(response => {
+        setCountryInfo(response.data)
+      })
+  }, [])
 
   return (
     <div>
-      <h1>Phonebook</h1>
-
-      <NameFilter newNameFilter={newNameFilter} handleNameFilterChange={handleNameFilterChange} />
-
-      <AddNewMember newName={newName} newPhoneNumber={newPhoneNumber}
-      handleNameChange={handleNameChange} handleAddName={handleAddName} 
-      handlePhoneNumberChange={handlePhoneNumberChange} />
-
-      <Numbers persons={persons} nameFilter={newNameFilter} />
-
+      <form>
+        <p>find countries 
+          <input
+            value={newCountryFilter}
+            onChange={handleCountryFilterChange}>
+          </input>
+        </p>
+      </form>
+      <ShowCountrysInfo countries={countriesInfo} />
     </div>
   )
+
 }
 
 export default App
