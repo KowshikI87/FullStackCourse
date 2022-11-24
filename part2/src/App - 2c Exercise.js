@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState} from 'react'
 import axios from 'axios'
 
 /*
@@ -68,7 +68,6 @@ const handleShowCountry = (event, country) => {
     <ShowCountryInfo country={country} />
   )
 }
-
 
 const ShowCountryInfo = ( {country} ) => {
   return (
