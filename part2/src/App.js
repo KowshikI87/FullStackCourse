@@ -1,134 +1,85 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
-
-/*
-  I don't know how to send multiple request inside the app component
-  so i am retrieving data from the server once. And then once we have the data for country,
-  we just filter it using filter text
-*/
-
-let allCountrysInfo;
-
-const getAllCountrysInfo = () => {
-  axios
-  .get('https://restcountries.com/v3.1/all')
-  .then(response => {
-    allCountrysInfo = response.data
-  })
-}
-
-getAllCountrysInfo();
-
-const ShowCountrysInfo = ( {countries} ) => {
-  //Case 1: No Data is Pulled
-  if (!countries || countries.length === 0) {
-    return (
-      <div>
-      </div>
-    )
-  }
-
-  //Case 2: Only One Country Matches Filter
-  if (countries.length === 1) {
-    return (
-      <div>
-        <ShowCountryInfo country={countries[0]} />
-      </div>
-    )
-  }
-
-  //Case 3: Multiple Countries Matches Filter
-  return (
-    <div>
-      {countries.map((country, idx) => {
-        return (
-          <ListCountry key={idx} country={country} />
-        )
-      })}
-    </div>
-  )
-}
-
-const ListCountry = ( {country} ) => {
-  return (
-    <div>
-      <form onSubmit={(event) => handleShowCountry(event, country)}>
-        <p>{country.name.common}
-          <button type="submit">show</button>
-        </p>
-      </form>
-    </div>
-  )
-}
-
-const handleShowCountry = (event, country) => {
-  event.preventDefault();
-  alert(`country name is ${country.name.common}`);
-  return (
-    <ShowCountryInfo country={country} />
-  )
-}
-
-
-const ShowCountryInfo = ( {country} ) => {
-  return (
-    <div>
-      <h2>{country.name.common}</h2>
-
-      <p> capital {country.capital[0]}</p>
-      <p> area {country.area}</p>
-      <h3>languages:</h3>
-      <ul>
-        {Object.values(country.languages).map((language, idx) =>
-          <Language key={idx} lang={language} />
-        )}
-      </ul>
-
-      <img src={country.flags.png} alt={`${country.name.common} flag`} />
-    </div>
-  )
-}
-
-const Language = ( {lang} ) => {
-  return (
-    <li>{lang}</li>
-  )
-}
+import Note from './components/Note'
+import noteService from './services/notes'
 
 const App = () => {
-  const [newCountryFilter, setNewCountryFilter] = useState('')
-  const [countriesInfo, setCountryInfo] = useState([]);
+  const [notes, setNotes] = useState([])
+  const [newNote, setNewNote] = useState('')
+  const [showAll, setShowAll] = useState(true)
 
-  const hook = () => {
-    axios
-    .get('https://restcountries.com/v3.1/all')
-    .then(response => {
-      setCountryInfo(response.data)
-    })
+  useEffect(() => {
+    noteService
+      .getAll()
+      .then(initialNotes => {
+        setNotes(initialNotes)
+      })
+  }, [])
+
+  const addNote = (event) => {
+    event.preventDefault()
+    const noteObject = {
+      content: newNote,
+      date: new Date().toISOString(),
+      important: Math.random() > 0.5
+    }
+
+    noteService
+      .create(noteObject)
+      .then(returnedNote => {
+        setNotes(notes.concat(returnedNote))
+        setNewNote('')
+      })
   }
 
-  const handleCountryFilterChange = (event) => {
-    let filteredCountries = allCountrysInfo.filter(country => {
-      let countryName = country.name.common.toUpperCase()
-      let filterName = newCountryFilter.toUpperCase()
-      return countryName.startsWith(filterName)
-    })
+  const handleNoteChange = (event) => {
+    setNewNote(event.target.value)
+  }
 
-    setNewCountryFilter(event.target.value)
-    setCountryInfo(filteredCountries);
+  const notesToShow = showAll
+    ? notes
+    : notes.filter(note => note.important)
+
+  const toggleImportanceOf = id => {
+    const note = notes.find(n => n.id === id)
+    //changed note is old note copied but "important" boolean variable
+    //is toggled
+    const changedNote = { ...note, important: !note.important }
+
+      //once the request is successful, we update newNote by calling setNotes
+    noteService
+    .update(id, changedNote)
+    .then(returnedNote => {
+      //we pass an array where all the other note objects apart from
+      //the note object changed is copied; for the note object changed, we copy
+      //it from response.data (recall that it only returns the object we changed)
+      setNotes(notes.map(note => note.id !== id ? note : returnedNote))
+    })
   }
 
   return (
     <div>
-      <form>
-        <p>find countries 
-          <input
-            value={newCountryFilter}
-            onChange={handleCountryFilterChange}>
-          </input>
-        </p>
+      <h1>Notes</h1>
+      <div>
+        <button onClick={() => setShowAll(!showAll)}>
+          show {showAll ? 'important' : 'all' }
+        </button>
+      </div>   
+      <ul>
+        {notesToShow.map(note => 
+          <Note 
+            key={note.id} 
+            note={note} 
+            toggleImportance={() => toggleImportanceOf(note.id)}/>
+        )}
+      </ul>
+      <form onSubmit={addNote}>
+        <input
+          value={newNote}
+          onChange={handleNoteChange}
+        />
+        <button type="submit">save</button>
       </form>
-      <ShowCountrysInfo countries={countriesInfo} />
     </div>
   )
 }
