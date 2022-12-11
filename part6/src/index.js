@@ -3,7 +3,8 @@ import ReactDOM from 'react-dom/client'
 import { configureStore } from '@reduxjs/toolkit'
 import { Provider } from 'react-redux'
 import App from './App'
-import noteReducer from './reducers/noteReducer'
+import noteService from './services/notes'
+import noteReducer, { setNotes } from './reducers/noteReducer'
 import filterReducer from './reducers/filterReducer'
 
 const store = configureStore({
